@@ -6,15 +6,16 @@ class Motor {
 private:
     void SpeedToPWM(int speed);
 public:
-int speed;
-uint8_t pinA;
-uint8_t pinB;
-uint8_t pinPWM;
-uint8_t encoderA;
-uint8_t encoderB;
-void setSpeed(int speed);
-void stop();
-void resume();
+    int speed;
+    gpio_num_t pinA;
+    gpio_num_t pinB;
+    gpio_num_t pinPWM;
+    gpio_num_t encoderA;
+    gpio_num_t encoderB;
+    void setSpeed(int speed);
+    void calibrate();
+    void pause();
+    void resume();
 };
 
 class MotorController {
