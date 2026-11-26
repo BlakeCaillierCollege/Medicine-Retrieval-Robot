@@ -3,36 +3,33 @@
 
 void GPIOinit() {
     gpio_config_t motor_input_config = {
-    .pin_bit_mask = 1ULL << pinNums::AIN1 | 1ULL << pinNums::AIN2 | 1ULL << pinNums::STBY |
-                    1ULL << pinNums::BIN1 | 1ULL << pinNums::BIN2,
+    .pin_bit_mask = 1ULL << hardware::AIN1 | 1ULL << hardware::AIN2 | 1ULL << hardware::STBY |
+                    1ULL << hardware::BIN1 | 1ULL << hardware::BIN2,
     .mode = GPIO_MODE_OUTPUT,
     .pull_up_en = GPIO_PULLUP_DISABLE,
     .pull_down_en = GPIO_PULLDOWN_DISABLE,
     .intr_type = GPIO_INTR_DISABLE,
     };
     ESP_ERROR_CHECK(gpio_config(&motor_input_config));
+    ESP_ERROR_CHECK(gpio_set_level(hardware::STBY, 1));
 }
 
-static void PWMinit(ledc_channel_t channel, gpio_num_t pin) {
+void PWMinit(ledc_channel_t channel, gpio_num_t pin) {
     // Prepare and then apply the LEDC PWM timer configuration
-    ledc_timer_config_t pwm_timer = {
-        .speed_mode       = pwmconfigs::MODE,
-        .duty_resolution  = pwmconfigs::DUTY_RES,
-        .timer_num        = pwmconfigs::TIMER,
-        .freq_hz          = pwmconfigs::FREQUENCY,  // Set output frequency at 4 kHz
-        .clk_cfg          = pwmconfigs::CLK_SRC,
-    };
+    ledc_timer_config_t pwm_timer = {};
+    pwm_timer.speed_mode = pwmconfigs::MODE;
+    pwm_timer.duty_resolution = pwmconfigs::DUTY_RES;
+    pwm_timer.timer_num = pwmconfigs::TIMER;
+    pwm_timer.freq_hz = pwmconfigs::FREQUENCY;
+    pwm_timer.clk_cfg = pwmconfigs::CLK_SRC;
     ESP_ERROR_CHECK(ledc_timer_config(&pwm_timer));
 
     // Prepare and then apply the LEDC PWM channel configuration
-    ledc_channel_config_t pwm_channel = {
-        .gpio_num       = pin,
-        .speed_mode     = pwmconfigs::MODE,
-        .channel        = channel,
-        .timer_sel      = pwmconfigs::TIMER,
-        .duty           = 0, // init duty to 0%
-        .hpoint         = 0,
-    };
+    ledc_channel_config_t pwm_channel = {};
+    pwm_channel.gpio_num = pin;
+    pwm_channel.speed_mode = pwmconfigs::MODE;
+    pwm_channel.channel = channel;
+    pwm_channel.timer_sel = pwmconfigs::TIMER;
     ESP_ERROR_CHECK(ledc_channel_config(&pwm_channel));
 }
 
@@ -79,9 +76,13 @@ pcnt_unit_handle_t configure_encoder(encoder_pins_t pins) {
 void analogWrite(ledc_channel_t channel, uint16_t duty) {
     if (duty > 2047) {
         duty = 2047;
-    } else if (duty < 0) {
-        duty = 0;
     }
     ESP_ERROR_CHECK(ledc_set_duty(pwmconfigs::MODE, channel, duty));
     ESP_ERROR_CHECK(ledc_update_duty(pwmconfigs::MODE, channel));
+}
+
+void initPins() {
+    GPIOinit();
+    PWMinit(hardware::chanA, hardware::PWMA);
+    PWMinit(hardware::chanB, hardware::PWMB);
 }

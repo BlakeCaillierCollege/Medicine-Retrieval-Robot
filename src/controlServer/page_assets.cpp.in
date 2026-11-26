@@ -1,0 +1,5 @@
+#include "page_assets.h"
+
+const char page_html[] = R"html(@PAGE_HTML@)html";
+const char page_js[] = R"js(@PAGE_JS@)js";
+const char page_css[] = R"css(@PAGE_CSS@)css";

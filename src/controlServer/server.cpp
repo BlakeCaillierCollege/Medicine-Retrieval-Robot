@@ -1,13 +1,24 @@
 #include "server.h"
 #include "esp_log.h"
 #include "MotorController.h"
+#include "page_assets.h"
 namespace {
 constexpr char TAG[] = "robot_server";
 static char last_command = 'S';
 
 esp_err_t root_get_handler(httpd_req_t* request) {
-    httpd_resp_set_type(request, "text/plain");
-    return httpd_resp_send(request, "Medicine Retrieval Robot is online\n", HTTPD_RESP_USE_STRLEN);
+    httpd_resp_set_type(request, "text/html");
+    return httpd_resp_send(request, page_html, HTTPD_RESP_USE_STRLEN);
+}
+
+esp_err_t page_js_get_handler(httpd_req_t* request) {
+    httpd_resp_set_type(request, "application/javascript");
+    return httpd_resp_send(request, page_js, HTTPD_RESP_USE_STRLEN);
+}
+
+esp_err_t page_css_get_handler(httpd_req_t* request) {
+    httpd_resp_set_type(request, "text/css");
+    return httpd_resp_send(request, page_css, HTTPD_RESP_USE_STRLEN);
 }
 
 esp_err_t status_get_handler(httpd_req_t* req) {
@@ -31,11 +42,11 @@ esp_err_t command_post_handler(httpd_req_t* req) {
         return ESP_FAIL;
     }
     if (command == 'F') {
-        controller->motor1.setSpeed(100);
-        controller->motor2.setSpeed(100);
+        controller->motor1.setTargetSpeed(1.0f);
+        controller->motor2.setTargetSpeed(1.0f);
     } else if (command == 'S') {
-        controller->motor1.setSpeed(0);
-        controller->motor2.setSpeed(0);
+        controller->motor1.stop();
+        controller->motor2.stop();
     } else {
         httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Use F or S");
         return ESP_OK;
@@ -70,6 +81,18 @@ httpd_handle_t start_webserver(MotorController* controller) {
         httpd_stop(server);
         return nullptr;
     }
+
+    httpd_uri_t page_js = {};
+    page_js.uri = "/page.js";
+    page_js.method = HTTP_GET;
+    page_js.handler = page_js_get_handler;
+    ESP_ERROR_CHECK(httpd_register_uri_handler(server, &page_js));
+
+    httpd_uri_t page_css = {};
+    page_css.uri = "/page.css";
+    page_css.method = HTTP_GET;
+    page_css.handler = page_css_get_handler;
+    ESP_ERROR_CHECK(httpd_register_uri_handler(server, &page_css));
     
     httpd_uri_t status = {};
     status.uri = "/status";
