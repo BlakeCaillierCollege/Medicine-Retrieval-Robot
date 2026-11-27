@@ -10,8 +10,6 @@ Motor::Motor(gpio_num_t pinA, gpio_num_t pinB, ledc_channel_t chanPWM,
 
 void Motor::update(float dt, int count) {
     if (dt <= 0.0f) return;
-    // resets the count to 0 for the next measurement
-    pcnt_unit_clear_count(this->encoder);
     // convert counts to revolutions
     float revolutions = static_cast<float>(count) / hardware::ENCODER_COUNTS_PER_REVOLUTION;
     this->measured_speed = (revolutions * this->wheel_circumference) / dt;

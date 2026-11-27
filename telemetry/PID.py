@@ -38,16 +38,17 @@ def poll_pid():
         for tick, target1, measured1, target2, measured2 in struct.iter_unpack(
             SAMPLE_FORMAT, payload
         ):
+            print(f"Measured 1: {measured1 / 1000.0}, Measured 2: {measured2 / 1000.0}")
             if last_tick is not None:
                 elapsed_ticks += (tick - last_tick) & 0xFFFFFFFF
             last_tick = tick
             graph.add_sample(
                 elapsed_ticks / TICKS_PER_SECOND,
                 {
-                    "Motor 1 target": target1 / 1000,
-                    "Motor 1 measured": measured1 / 1000,
-                    "Motor 2 target": target2 / 1000,
-                    "Motor 2 measured": measured2 / 1000,
+                    "Motor 1 target": target1 / 1000.0,  # Convert mm/s to m/s
+                    "Motor 1 measured": measured1 / 1000.0,  # Convert mm/s to m/s
+                    "Motor 2 target": target2 / 1000.0,  # Convert mm/s to m/s
+                    "Motor 2 measured": measured2 / 1000.0,  # Convert mm/s to m/s
                 },
             )
     except (requests.RequestException, ValueError) as exc:
