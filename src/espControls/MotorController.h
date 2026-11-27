@@ -22,7 +22,6 @@
  */
 class Motor {
 public:
-    pcnt_unit_handle_t encoder;
     /**
      * @brief Constructs a Motor object with the specified hardware configuration and physical parameters.
      * @param pinA GPIO pin for motor input A
@@ -60,9 +59,10 @@ public:
      * @param kd Derivative gain (optional, default is 0.0f)
      */
     void setGains(float kp, float ki, float kd = 0.0f);
-
+    float getTargetSpeed() const { return this->target_speed; }
     float getMeasuredSpeed() const { return this->measured_speed; }
     float getSpeedRatio() const { return this->speed_ratio; }
+    pcnt_unit_handle_t getEncoder() const { return this->encoder; }
 
 private:
     void setDirection(bool forward);
@@ -72,6 +72,7 @@ private:
     gpio_num_t pinA;
     gpio_num_t pinB;
     ledc_channel_t chanPWM;
+    pcnt_unit_handle_t encoder;
     const char* nvs_key;
     // Physical constants
     float wheel_circumference;

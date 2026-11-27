@@ -14,8 +14,8 @@ namespace hardware {
     constexpr gpio_num_t AIN1 = GPIO_NUM_27;
     constexpr gpio_num_t AIN2 = GPIO_NUM_14;
     constexpr gpio_num_t STBY = GPIO_NUM_26;
-    constexpr gpio_num_t BIN1 = GPIO_NUM_25;
-    constexpr gpio_num_t BIN2 = GPIO_NUM_33;
+    constexpr gpio_num_t BIN1 = GPIO_NUM_33;
+    constexpr gpio_num_t BIN2 = GPIO_NUM_25;
 
     // Pulse counters
     constexpr encoder_pins_t ENCODER_A = {GPIO_NUM_19, GPIO_NUM_18};

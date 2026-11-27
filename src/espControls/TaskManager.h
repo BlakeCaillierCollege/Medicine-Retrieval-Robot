@@ -1,14 +1,22 @@
 #pragma once
-#include <stdint.h>
-#include "freertos/FreeRTOS.h" // Changed \ to /
+#include <cstddef>
+#include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "freertos/queue.h"
-#include "freertos/semphr.h"
-#include <MotorController.h>
+#include "MotorController.h"
+#include "esp_log.h"
+#include "TelemetryBuffer.h"
 
-// Optional: Expose the handle if other files need to suspend/notify this task
-extern TaskHandle_t xPIDTaskHandle;
-
-// Prototype for the task function and its initializer
-void vfeedback(void *pvParameters);
-BaseType_t xTaskInit(MotorController* controller);
+class TaskManager {
+public:
+    explicit TaskManager(MotorController& controller) : controller_(controller) {}
+    esp_err_t begin();
+    size_t drainSamples(PIDSample* destination, size_t max_count);
+    MotorController& getController();
+private:
+    TaskHandle_t xPIDTaskHandle_ = nullptr;
+    portMUX_TYPE pid_buffer_lock_ = portMUX_INITIALIZER_UNLOCKED;
+    PIDBuffer pid_buffer_;
+    MotorController& controller_;
+    void pidLoop();
+    static void pidTaskTrampoline(void* parameter);
+};

@@ -16,14 +16,17 @@ extern "C" void app_main() {
     static Motor motor2(hardware::BIN1, hardware::BIN2, hardware::chanB, encoder2, "motor2");
     static MotorController controller(motor1, motor2);
     controller.begin(false); // false means don't force calibration on startup
+    controller.motor1.setGains(0.5f, 0.1f, 0.01f);
+    controller.motor2.setGains(0.5f, 0.1f, 0.01f);
+    static TaskManager task_manager(controller);
+    if (task_manager.begin() != ESP_OK) {
+        // TODO: Report task startup failure through a device status indicator.
+        return;
+    }
     // WiFi initialization and web server start
     static WiFiManager wifiManager(wifi::ssid, wifi::password, wifi::TAG);
     if (wifiManager.wifi_init()) {
-        start_webserver(&controller);
-    }
-
-    if (xTaskInit(&controller) != ESP_OK) {
-        return;
+        start_webserver(&task_manager);
     }
 }
 

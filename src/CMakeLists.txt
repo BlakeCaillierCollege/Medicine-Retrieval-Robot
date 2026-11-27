@@ -6,11 +6,11 @@ FILE(GLOB_RECURSE app_sources ${CMAKE_SOURCE_DIR}/src/*.cpp)
 set(page_directory "${CMAKE_CURRENT_LIST_DIR}/../data")
 set(page_files
     "${page_directory}/page.html"
-    "${page_directory}/page.js"
+    "${CMAKE_CURRENT_LIST_DIR}/controlServer/page.js"
     "${page_directory}/page.css")
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${page_files})
 file(READ "${page_directory}/page.html" PAGE_HTML)
-file(READ "${page_directory}/page.js" PAGE_JS)
+file(READ "${CMAKE_CURRENT_LIST_DIR}/controlServer/page.js" PAGE_JS)
 file(READ "${page_directory}/page.css" PAGE_CSS)
 set(page_generated_dir "${CMAKE_CURRENT_LIST_DIR}/../.pio/generated")
 file(MAKE_DIRECTORY "${page_generated_dir}")

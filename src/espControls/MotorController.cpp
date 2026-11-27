@@ -4,8 +4,8 @@
 
 Motor::Motor(gpio_num_t pinA, gpio_num_t pinB, ledc_channel_t chanPWM,
           pcnt_unit_handle_t encoder, const char* nvs_key)
-    : encoder(encoder), pinA(pinA), pinB(pinB), chanPWM(chanPWM),
-      nvs_key(nvs_key), wheel_circumference(0.044f) {
+    : pinA(pinA), pinB(pinB), chanPWM(chanPWM), encoder(encoder),
+      nvs_key(nvs_key), wheel_circumference(0.044f * 3.14159f) {
 }
 
 void Motor::update(float dt, int count) {
@@ -188,3 +188,6 @@ void MotorController::begin(bool force_calibrate) {
         motor2.saveCalibration();
     }
 }
+
+// goal: implement a function with helpers that is able to make any velocity vector
+// helpers: 

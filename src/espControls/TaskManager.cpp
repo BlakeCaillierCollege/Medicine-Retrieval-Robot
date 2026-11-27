@@ -1,53 +1,67 @@
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "MotorController.h"
 #include "TaskManager.h"
-#include "esp_log.h"
 
-TaskHandle_t xPIDTaskHandle = NULL; 
+void TaskManager::pidTaskTrampoline(void* parameter) {
+    static_cast<TaskManager*>(parameter)->pidLoop();
+}
 
-// Create a new task
-void vfeedback(void* pvParameters) {
-    auto* controller = static_cast<MotorController*>(pvParameters);
-    if (controller == nullptr) {
-        vTaskDelete(nullptr);
-        return;
-    }
-
+void TaskManager::pidLoop() {
     TickType_t xlastwake = xTaskGetTickCount();
-    const TickType_t frequency = pdMS_TO_TICKS(10); // 10 ms
     TickType_t xpreviouswake = xlastwake;
+    const TickType_t frequency = pdMS_TO_TICKS(20); // 20 ms
     float dt;
     for (;;) {
-        dt = (xlastwake - xpreviouswake) * portTICK_PERIOD_MS / 1000.0f; // convert to seconds
+        PIDSample sample;
+        const TickType_t xthiswake = xTaskGetTickCount();
+        dt = (xthiswake - xpreviouswake) * portTICK_PERIOD_MS / 1000.0f;
         if (dt > 0.0f) {
             int count1;
             int count2;
-            pcnt_unit_get_count(controller->motor1.encoder, &count1);
-            pcnt_unit_get_count(controller->motor2.encoder, &count2);
-            controller->motor1.update(dt, count1);
-            controller->motor2.update(dt, count2);
+            pcnt_unit_get_count(controller_.motor1.getEncoder(), &count1);
+            pcnt_unit_get_count(controller_.motor2.getEncoder(), &count2);
+            controller_.motor1.update(dt, count1);
+            controller_.motor2.update(dt, count2);
         }
-        xpreviouswake = xlastwake;
+        sample.sequence = xthiswake;
+        sample.target_speed1 = static_cast<int16_t>(controller_.motor1.getTargetSpeed() * 1000); // Convert to mm/s
+        sample.measured_speed1 = static_cast<int16_t>(controller_.motor1.getMeasuredSpeed() * 1000); // Convert to mm/s
+        sample.target_speed2 = static_cast<int16_t>(controller_.motor2.getTargetSpeed() * 1000); // Convert to mm/s
+        sample.measured_speed2 = static_cast<int16_t>(controller_.motor2.getMeasuredSpeed() * 1000); // Convert to mm/s
+        portENTER_CRITICAL(&pid_buffer_lock_);
+        pid_buffer_.push(sample);
+        portEXIT_CRITICAL(&pid_buffer_lock_);
+
+        xpreviouswake = xthiswake;
+        if ((TickType_t)(xthiswake - xlastwake) >= frequency) {
+            xlastwake = xthiswake;
+        }
         vTaskDelayUntil(&xlastwake, frequency);
     }
-};
+}
 
+size_t TaskManager::drainSamples(PIDSample* destination, size_t max_count) {
+    portENTER_CRITICAL(&pid_buffer_lock_);
+    const size_t drained = pid_buffer_.drain(destination, max_count);
+    portEXIT_CRITICAL(&pid_buffer_lock_);
+    return drained;
+}
 
-BaseType_t xTaskInit(MotorController* controller) {
-    // Create a new task
-    BaseType_t res1 = xTaskCreate(
-        vfeedback,   // Function pointer to the task
-        "PID_Loop",        // Descriptive name (for debugging)
-        4096,              // ESP-IDF specifies task stack size in bytes
-        controller,        // Motor controller used by the feedback task
-        3,                 // Task priority (higher number = higher priority; 0 is Idle)
-        &xPIDTaskHandle    // Optional TaskHandle_t pointer (used to suspend/delete later)
+esp_err_t TaskManager::begin() {
+    if (xPIDTaskHandle_ != nullptr) return ESP_OK;
+    const BaseType_t result = xTaskCreate(
+        pidTaskTrampoline,
+        "PID_Loop",
+        4096,
+        this,
+        3,
+        &xPIDTaskHandle_
     );
-    if (res1 != pdPASS) {
-        // Handle task creation failure (e.g., log an error)
+    if (result != pdPASS) {
         ESP_LOGE("TaskManager", "Failed to create PID control task");
         return ESP_ERR_NO_MEM;
     }
     return ESP_OK;
+}
+
+MotorController& TaskManager::getController() {
+    return controller_;
 }
